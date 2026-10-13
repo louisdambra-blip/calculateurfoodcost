@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calculateur food cost SCAL</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&display=swap">
+<style>
+html,body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+/* Layout : une colonne de saisie (la recette) et un ticket de résultat collant à droite ; tout s'empile sur téléphone. */
+:root{
+  /* Couleurs relevées sur www.scal.fr : blanc, gris #f5f5f5, rouge #d9000d, vert #169d53, texte #383838, titres Oswald en capitales */
+  --bg:#FFFFFF; --surface:#F5F5F5; --ink:#383838; --muted:#6B6B6B; --rule:#E0E0E0;
+  --accent:#D9000D; --accent-ink:#FFFFFF; --cta:#169D53; --cta-ink:#FFFFFF;
+  --blush:#F5F5F5; --hl:#F5F5F5; --hl-ink:#383838; --good:#169D53;
+  --band:#FFFFFF; --band-ink:#383838;
+  --display:"Oswald","Arial Narrow",Impact,sans-serif;
+  --body:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  color-scheme:light; /* thème unique, fond blanc comme scal.fr, quel que soit le réglage du lecteur */
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:20px}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--cta);outline-offset:2px}
+
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding-block:14px}
+.brand{display:block;text-decoration:none}
+.brand .logo{display:block;height:42px;width:auto}
+.brand .fb{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.brand b{font-family:var(--display);font-size:32px;color:var(--accent);letter-spacing:-.5px;font-weight:700;font-style:italic}
+.brand span{font:500 13px var(--display);letter-spacing:.06em;text-transform:uppercase;color:var(--ink)}
+.strip{background:var(--accent);color:var(--accent-ink)}
+.strip .wrap{display:flex;justify-content:center;gap:8px 36px;flex-wrap:wrap;padding-block:11px;font:500 13px var(--display);letter-spacing:.05em;text-transform:uppercase}
+.proto{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);border:1px solid var(--rule);padding:4px 8px}
+
+.herogrid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,.75fr);gap:32px;align-items:center}
+.pz{width:100%;max-width:380px;aspect-ratio:1;justify-self:center;filter:drop-shadow(0 16px 22px rgba(0,0,0,.22));transition:transform .3s}
+.pz svg{display:block;width:100%;height:100%;animation:spin 110s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.pz svg{animation:none}.pz{transition:none}}
+.presets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 0 26px}
+.preset{background:none;border:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:10px;padding:8px;color:var(--ink);font:700 15px var(--display);letter-spacing:.04em;text-transform:uppercase}
+.preset .pz{max-width:150px}
+.preset:hover .pz{transform:scale(1.07) rotate(8deg)}
+.preset span{padding-bottom:3px;border-bottom:3px solid transparent}
+.preset[aria-pressed="true"] span{color:var(--accent);border-bottom-color:var(--accent)}
+.next{position:relative;overflow:hidden}
+.next .wrap{position:relative;z-index:1}
+.next .pz{position:absolute;right:-70px;bottom:-110px;width:330px;max-width:none}
+@media (max-width:980px){.next .pz{display:none}}
+@media (max-width:860px){.herogrid{grid-template-columns:minmax(0,1fr);gap:0}.herogrid>.pz{max-width:230px;margin-bottom:12px}}
+.hero{padding-block:44px 32px;display:flex;flex-direction:column;gap:16px;max-width:760px}
+.dash{width:44px;height:7px;background:var(--accent)}
+.kicker{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--display);font-weight:700;text-transform:uppercase;font-size:clamp(30px,5.4vw,54px);line-height:1.12;margin:0;text-wrap:balance}
+h1 em{font-style:normal;color:var(--accent)}
+.hero p{margin:0;font-size:18px;color:var(--muted);max-width:60ch}
+.btn{display:inline-block;background:var(--cta);color:var(--cta-ink);text-decoration:none;padding:12px 24px;border:0;border-radius:999px;font:700 15px var(--display);letter-spacing:.04em;text-transform:uppercase;cursor:pointer}
+.btn:hover{filter:brightness(1.08)}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--ink)}
+.hero .btn{align-self:flex-start}
+
+h2{font-family:var(--display);font-weight:700;text-transform:uppercase;font-size:clamp(21px,2.8vw,28px);line-height:1.2;margin:0;text-wrap:balance}
+section{padding-block:28px}
+.calc{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:28px;align-items:start}
+.panel{background:var(--surface);border:1px solid var(--rule);padding:22px;display:flex;flex-direction:column;gap:18px;min-width:0}
+.note{font-size:13px;color:var(--muted);font-style:italic;margin:0}
+
+label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:5px}
+input,select{font:500 16px var(--body);color:var(--ink);background:var(--bg);border:1px solid var(--rule);padding:9px 10px;width:100%;min-width:0;font-variant-numeric:tabular-nums}
+input:focus,select:focus{border-color:var(--ink)}
+.sale{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:12px}
+.rows{display:flex;flex-direction:column;gap:8px}
+.row,.rowhead{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(0,.85fr) minmax(0,1.45fr) minmax(0,.95fr) 66px 30px;gap:8px;align-items:center}
+.rowhead{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.rowhead span:nth-child(5),.row .cost{text-align:right}
+.row .cost{font-weight:700;font-variant-numeric:tabular-nums}
+.del{background:none;border:0;color:var(--muted);font-size:20px;line-height:1;cursor:pointer;padding:6px}
+.del:hover{color:var(--accent)}
+.add{align-self:flex-start;background:none;border:1.5px dashed var(--rule);color:var(--ink);font:600 14px var(--body);padding:9px 14px;cursor:pointer}
+.add:hover{border-color:var(--ink)}
+
+.ticket{position:sticky;top:calc(env(safe-area-inset-top, 0px) + 16px);background:var(--band);color:var(--band-ink);border:1px solid var(--rule);border-top:5px solid var(--accent);padding:24px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.ticket .kicker{color:var(--band-ink);opacity:.65}
+.ticket .big span{color:var(--accent)}
+.big{font-family:var(--display);font-weight:700;font-size:clamp(44px,7vw,64px);line-height:1;font-variant-numeric:tabular-nums}
+.big small{font-family:var(--body);font-size:15px;font-weight:500;opacity:.7;margin-left:6px}
+.split{display:flex;height:14px;background:var(--good)}
+.split i{display:block;background:var(--accent);height:100%;transition:width .2s}
+@media (prefers-reduced-motion:reduce){.split i{transition:none}}
+.legend{display:flex;justify-content:space-between;font-size:13px;opacity:.85;gap:8px;flex-wrap:wrap}
+.lines{display:flex;flex-direction:column;border-top:1px solid var(--rule)}
+.lines div{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--rule);font-variant-numeric:tabular-nums}
+.lines div b{white-space:nowrap}
+.verdict{background:var(--hl);color:var(--hl-ink);padding:10px 12px;font-weight:600;font-size:15px}
+.copy{background:transparent;border:1.5px solid var(--band-ink);color:var(--band-ink);font:600 14px var(--body);padding:10px;cursor:pointer}
+.copy:hover{background:var(--band-ink);color:var(--band)}
+
+.sim{background:var(--blush);padding:26px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:center}
+.sim p{margin:8px 0 0;color:var(--muted)}
+.simctl{display:flex;flex-direction:column;gap:12px;min-width:0}
+input[type=range]{padding:0;border:0;background:transparent;accent-color:var(--accent)}
+.simout{font-size:17px}
+.simout strong{font-family:var(--display);font-weight:700;font-size:30px;color:var(--accent);display:block;font-variant-numeric:tabular-nums}
+
+.levers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;margin-top:20px}
+.levers article{border-top:3px solid var(--accent);padding-top:14px}
+.levers h3{font:700 18px var(--body);margin:0 0 6px}
+.levers p{margin:0;color:var(--muted)}
+
+.next{background:var(--accent);color:var(--accent-ink);margin-top:28px}
+.next .wrap{padding-block:40px;display:flex;flex-direction:column;gap:18px}
+.next p{margin:0;max-width:62ch}
+.cta{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.next .btn{background:var(--accent-ink);color:var(--accent)}
+.next .btn.ghost{background:transparent;color:var(--accent-ink);border-color:var(--accent-ink)}
+.tel{font-family:var(--display);font-weight:700;font-size:22px;user-select:all}
+footer{font-size:12px;color:var(--muted);padding-block:18px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+
+@media (max-width:860px){
+  .calc,.sim{grid-template-columns:minmax(0,1fr)}
+  .ticket{position:static}
+  .levers{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:600px){
+  .sale{grid-template-columns:1fr 1fr}
+  .sale .wide{grid-column:1/-1}
+  .rowhead{display:none}
+  .row{grid-template-columns:1fr 1fr 1fr 34px;padding-bottom:10px;border-bottom:1px solid var(--rule)}
+  .row .name{grid-column:1/4}
+  .row .cost{grid-column:4;grid-row:1;font-size:14px}
+  .row .del{grid-column:4;grid-row:2}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="https://www.scal.fr" aria-label="SCAL, solutions pizza et snacking">
+      <img class="logo" src="https://www.scal.fr/templates-assets/frontOffice/scal/dist/images/logo-2026.svg" alt="SCAL Solutions Pizza &amp; Snacking" height="42" onerror="this.hidden=true;this.nextElementSibling.hidden=false">
+      <div class="fb" hidden><b>SCAL</b><span>Solutions pizza &amp; snacking depuis 1984</span></div>
+    </a>
+    <span class="proto">Prototype interne</span>
+  </header>
+</div>
+<div class="strip"><div class="wrap"><span>Commandez en quelques clics</span><span>Livraison partout en France</span><span>Retrait dans nos Cash &amp; Carry</span></div></div>
+<div class="wrap">
+
+  <div class="herogrid">
+  <div class="hero">
+    <div class="dash"></div>
+    <div class="kicker">Calculateur food cost</div>
+    <h1>Combien vous rapporte <em>vraiment</em> votre pizza la plus vendue&nbsp;?</h1>
+    <p>Vous connaissez son prix de vente. Calculez en deux minutes ce qu'il vous reste une fois la pâte, la sauce, la mozzarella, la garniture et la boîte payées.</p>
+    <a class="btn" href="#calcul">Calculer ma marge</a>
+  </div>
+  <div class="pz" data-pizza="reine" data-seed="11"></div>
+  </div>
+
+  <section id="calcul">
+    <h2>Partez d'une recette type</h2>
+    <div class="presets">
+      <button class="preset" type="button" data-preset="margherita" aria-pressed="false"><div class="pz" data-pizza="margherita" data-seed="5"></div><span>Margherita</span></button>
+      <button class="preset" type="button" data-preset="reine" aria-pressed="true"><div class="pz" data-pizza="reine" data-seed="23"></div><span>Reine</span></button>
+      <button class="preset" type="button" data-preset="fromages" aria-pressed="false"><div class="pz" data-pizza="fromages" data-seed="8"></div><span>4 fromages</span></button>
+    </div>
+    <div class="calc">
+      <div class="panel">
+        <h2>Votre recette</h2>
+        <div class="sale">
+          <div class="wide"><label for="nom">Pizza</label><input id="nom" type="text" value="Reine 33 cm"></div>
+          <div><label for="ttc">Prix TTC (€)</label><input id="ttc" type="number" inputmode="decimal" step="0.1" min="0" value="11"></div>
+          <div><label for="tva">TVA</label><select id="tva"><option value="10" selected>10 %</option><option value="5.5">5,5 %</option><option value="20">20 %</option></select></div>
+          <div><label for="vol">Ventes / mois</label><input id="vol" type="number" inputmode="numeric" step="10" min="0" value="400"></div>
+        </div>
+
+        <div>
+          <div class="rowhead"><span>Ingrédient</span><span>Quantité</span><span>Unité</span><span>Prix d'achat HT</span><span>Coût</span><span></span></div>
+          <div class="rows" id="rows"></div>
+        </div>
+        <button class="add" id="add" type="button">+ Ajouter un ingrédient</button>
+        <p class="note">Les valeurs affichées sont des exemples. Remplacez-les par vos grammages pesés et vos prix d'achat réels, au kilo ou à la pièce.</p>
+      </div>
+
+      <aside class="ticket" aria-live="polite">
+        <div class="kicker" id="t-nom">Reine 33 cm</div>
+        <div>
+          <div class="big"><span id="fc">0</span><small>% de food cost</small></div>
+        </div>
+        <div>
+          <div class="split"><i id="bar" style="width:0%"></i></div>
+          <div class="legend"><span>Matière <b id="l-cout"></b></span><span>Marge <b id="l-marge"></b></span></div>
+        </div>
+        <div class="lines">
+          <div><span>Prix de vente HT</span><b id="ht"></b></div>
+          <div><span>Coût matière et emballage</span><b id="cout"></b></div>
+          <div><span>Marge par pizza</span><b id="marge"></b></div>
+          <div><span>Marge par mois</span><b id="mois"></b></div>
+        </div>
+        <div>
+          <label for="obj" style="color:inherit;opacity:.65">Votre objectif de food cost (%)</label>
+          <input id="obj" type="number" inputmode="decimal" step="1" min="1" max="99" value="30">
+        </div>
+        <div class="verdict" id="verdict"></div>
+        <button class="copy" id="copy" type="button">Copier la fiche de calcul</button>
+      </aside>
+    </div>
+  </section>
+
+  <section>
+    <div class="sim">
+      <div>
+        <div class="kicker">Simulateur de grammage</div>
+        <h2>Dix grammes, ça ne se voit pas sur une pizza. Sur un mois, si.</h2>
+        <p>Déplacez le curseur pour mesurer ce que coûte ou rapporte un écart de dosage sur l'ingrédient de votre choix.</p>
+      </div>
+      <div class="simctl">
+        <div><label for="s-ing">Ingrédient</label><select id="s-ing"></select></div>
+        <div><label for="s-delta">Écart de dosage : <span id="s-val"></span></label><input id="s-delta" type="range" min="-20" max="20" step="1" value="10"></div>
+        <div class="simout"><strong id="s-mois"></strong><span id="s-txt"></span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Trois habitudes qui protègent votre marge</h2>
+    <div class="levers">
+      <article><h3>Peser, pas estimer</h3><p>Une balance au poste de garnissage et un grammage cible par format. L'écart entre la main et la balance est la première fuite de marge.</p></article>
+      <article><h3>Une fiche technique par recette</h3><p>Grammages, coût et prix de vente sur une même page. Elle sert à former l'équipe et à recalculer dès qu'un prix d'achat bouge.</p></article>
+      <article><h3>Raisonner en coût par pizza</h3><p>Un produit moins cher au kilo peut coûter plus cher à la pizza s'il rend de l'eau, couvre moins ou file mal. Comparez le rendement, pas l'étiquette.</p></article>
+    </div>
+  </section>
+</div>
+
+<div class="next">
+  <div class="pz" data-pizza="margherita" data-seed="31" aria-hidden="true"></div>
+  <div class="wrap">
+    <h2>Refaisons le calcul ensemble, avec vos recettes.</h2>
+    <p>Votre commercial SCAL ou l'équipe de votre Cash &amp; Carry reprend votre carte avec vous et vous aide à choisir les produits au meilleur coût par pizza.</p>
+    <div class="cta">
+      <a class="btn" href="https://www.scal.fr/contact">Être rappelé par un conseiller</a>
+      <a class="btn ghost" href="https://www.scal.fr/cash-carry">Trouver mon Cash &amp; Carry</a>
+      <span class="tel">01 69 82 85 85</span>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <footer><span>Groupe SCAL &amp; MOZZALAT · prototype, non publié</span><span>Calcul indicatif, hors main-d'œuvre, énergie et charges</span></footer>
+</div>
+
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id)};
+  var eur=new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'});
+  var eur0=new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0});
+  var pct=new Intl.NumberFormat('fr-FR',{maximumFractionDigits:1});
+  var seq=0;
+  var rows=[
+    {n:'Pâton',q:250,u:'g',p:1.2},
+    {n:'Sauce tomate',q:90,u:'g',p:2.2},
+    {n:'Mozzarella',q:110,u:'g',p:6.5},
+    {n:'Jambon',q:60,u:'g',p:9},
+    {n:'Champignons',q:50,u:'g',p:4},
+    {n:'Boîte à pizza',q:1,u:'pc',p:0.22}
+  ].map(function(r){r.id=++seq;return r});
+
+  function num(v){var x=parseFloat(String(v).replace(',','.'));return isFinite(x)&&x>0?x:0}
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+  function rowCost(r){return r.u==='g'?r.q/1000*r.p:r.q*r.p}
+
+  function renderRows(){
+    $('rows').innerHTML=rows.map(function(r){
+      var i='r'+r.id;
+      return '<div class="row" data-id="'+r.id+'">'+
+        '<input class="name" id="'+i+'-n" data-f="n" type="text" aria-label="Ingrédient" value="'+esc(r.n)+'">'+
+        '<input id="'+i+'-q" data-f="q" type="number" inputmode="decimal" min="0" step="any" aria-label="Quantité" value="'+r.q+'">'+
+        '<select id="'+i+'-u" data-f="u" aria-label="Unité"><option value="g"'+(r.u==='g'?' selected':'')+'>g · €/kg</option><option value="pc"'+(r.u==='pc'?' selected':'')+'>pièce · €/pc</option></select>'+
+        '<input id="'+i+'-p" data-f="p" type="number" inputmode="decimal" min="0" step="any" aria-label="Prix d\'achat hors taxes" value="'+r.p+'">'+
+        '<span class="cost" id="'+i+'-c"></span>'+
+        '<button class="del" type="button" data-del="'+r.id+'" aria-label="Supprimer '+esc(r.n)+'">×</button>'+
+      '</div>';
+    }).join('');
+    renderSimOptions();
+  }
+
+  function renderSimOptions(){
+    var sel=$('s-ing'),cur=sel.value;
+    var g=rows.filter(function(r){return r.u==='g'});
+    sel.innerHTML=g.map(function(r){return '<option value="'+r.id+'">'+esc(r.n||'Ingrédient')+'</option>'}).join('');
+    var keep=g.filter(function(r){return String(r.id)===cur})[0];
+    var moz=g.filter(function(r){return /mozza/i.test(r.n)})[0];
+    if(keep)sel.value=cur;else if(moz)sel.value=moz.id;
+  }
+
+  var last={};
+  function calc(){
+    var ttc=num($('ttc').value),tva=num($('tva').value),vol=num($('vol').value),obj=num($('obj').value);
+    var ht=ttc/(1+tva/100),cost=0;
+    rows.forEach(function(r){var c=rowCost(r);cost+=c;var el=$('r'+r.id+'-c');if(el)el.textContent=eur.format(c)});
+    var marge=ht-cost,fc=ht>0?cost/ht*100:0;
+    $('t-nom').textContent=$('nom').value||'Votre pizza';
+    $('fc').textContent=pct.format(fc);
+    $('bar').style.width=Math.max(0,Math.min(100,fc))+'%';
+    $('l-cout').textContent=eur.format(cost);
+    $('l-marge').textContent=eur.format(marge);
+    $('ht').textContent=eur.format(ht);
+    $('cout').textContent=eur.format(cost);
+    $('marge').textContent=eur.format(marge);
+    $('mois').textContent=eur0.format(marge*vol);
+    var v=$('verdict');
+    if(!ht||!obj){v.textContent='Renseignez un prix de vente et un objectif.'}
+    else if(fc<=obj){v.textContent='Objectif tenu : '+pct.format(obj-fc)+' point(s) de marge d\'avance.'}
+    else{
+      var need=cost/(obj/100)*(1+tva/100);
+      v.textContent='Au-dessus de l\'objectif de '+pct.format(fc-obj)+' point(s). Pour tenir '+pct.format(obj)+' %, il faut vendre à '+eur.format(need)+' TTC ou retirer '+eur.format(cost-ht*obj/100)+' de coût.';
+    }
+    last={ttc:ttc,tva:tva,vol:vol,ht:ht,cost:cost,marge:marge,fc:fc};
+    sim();
+  }
+
+  function sim(){
+    var d=parseInt($('s-delta').value,10)||0;
+    var r=rows.filter(function(x){return String(x.id)===$('s-ing').value})[0];
+    $('s-val').textContent=(d>0?'+':'')+d+' g par pizza';
+    if(!r){$('s-mois').textContent='';$('s-txt').textContent='Ajoutez un ingrédient au poids pour simuler.';return}
+    var per=d/1000*r.p,m=per*last.vol;
+    $('s-mois').textContent=(m>0?'− ':m<0?'+ ':'')+eur0.format(Math.abs(m))+' de marge par mois';
+    $('s-txt').textContent=d===0?'Aucun écart de dosage.':
+      'Soit '+eur.format(Math.abs(per))+' par pizza et '+eur0.format(Math.abs(m*12))+' par an '+(d>0?'perdus':'gagnés')+', sur '+last.vol+' pizzas par mois.';
+  }
+
+  $('rows').addEventListener('input',function(e){
+    var el=e.target,f=el.dataset.f;if(!f)return;
+    var id=el.closest('.row').dataset.id,r=rows.filter(function(x){return String(x.id)===id})[0];
+    if(!r)return;
+    r[f]=(f==='n'||f==='u')?el.value:num(el.value);
+    if(f==='n'||f==='u')renderSimOptions();
+    calc();
+  });
+  $('rows').addEventListener('click',function(e){
+    var id=e.target.dataset.del;if(!id)return;
+    rows=rows.filter(function(x){return String(x.id)!==id});renderRows();calc();
+  });
+  $('add').addEventListener('click',function(){
+    var r={id:++seq,n:'',q:0,u:'g',p:0};rows.push(r);renderRows();calc();
+    var el=$('r'+r.id+'-n');if(el)el.focus();
+  });
+  ['nom','ttc','tva','vol','obj'].forEach(function(id){$(id).addEventListener('input',calc)});
+  $('s-delta').addEventListener('input',sim);
+  $('s-ing').addEventListener('input',sim);
+
+  $('copy').addEventListener('click',function(){
+    var b=this,L=last;
+    var txt=['Fiche de calcul : '+($('nom').value||'Pizza'),
+      'Prix de vente : '+eur.format(L.ttc)+' TTC, '+eur.format(L.ht)+' HT (TVA '+pct.format(L.tva)+' %)',''
+    ].concat(rows.map(function(r){
+      return '- '+(r.n||'Ingrédient')+' : '+r.q+(r.u==='g'?' g à '+eur.format(r.p)+'/kg':' pc à '+eur.format(r.p)+'/pc')+' = '+eur.format(rowCost(r));
+    })).concat(['','Coût matière et emballage : '+eur.format(L.cost),
+      'Food cost : '+pct.format(L.fc)+' %','Marge par pizza : '+eur.format(L.marge),
+      'Marge par mois ('+L.vol+' pizzas) : '+eur0.format(L.marge*L.vol)]).join('\n');
+    var done=function(ok){b.textContent=ok?'Fiche copiée':'Copie impossible ici';setTimeout(function(){b.textContent='Copier la fiche de calcul'},2000)};
+    try{navigator.clipboard.writeText(txt).then(function(){done(true)},function(){done(false)})}catch(err){done(false)}
+  });
+
+  /* Pizzas illustrées, dessinées en SVG à partir d'une graine pour un rendu stable */
+  function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;var t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+  function f(x){return Math.round(x*10)/10}
+  function blob(R,cx,cy,r,irr,n){
+    var p=[],i,a,rr;
+    for(i=0;i<n;i++){a=i/n*Math.PI*2;rr=r*(1-irr+R()*2*irr);p.push([cx+Math.cos(a)*rr,cy+Math.sin(a)*rr])}
+    var d='M'+f((p[n-1][0]+p[0][0])/2)+' '+f((p[n-1][1]+p[0][1])/2);
+    for(i=0;i<n;i++){var q=p[(i+1)%n];d+='Q'+f(p[i][0])+' '+f(p[i][1])+' '+f((p[i][0]+q[0])/2)+' '+f((p[i][1]+q[1])/2)}
+    return d+'Z';
+  }
+  function place(R,count,maxR,minD){
+    var out=[],tries=0;
+    while(out.length<count&&tries<600){tries++;
+      var a=R()*Math.PI*2,d=Math.sqrt(R())*maxR,x=Math.cos(a)*d,y=Math.sin(a)*d;
+      if(out.every(function(o){return Math.hypot(o[0]-x,o[1]-y)>=minD}))out.push([x,y,R()*360]);
+    }
+    return out;
+  }
+  var TOP={
+    mozza:function(R){var r=11+R()*5;return '<path d="'+blob(R,0,0,r,.13,12)+'" fill="#fffdf6" stroke="#eadbb9" stroke-width="1"/><path d="'+blob(R,-1.5,-1.5,r*.55,.2,9)+'" fill="#ffffff" opacity=".85"/>'},
+    basil:function(){return '<path d="M0-10C7-5 7 5 0 10C-7 5-7-5 0-10Z" fill="#2f7d32"/><path d="M0-8V8M0-3L3-5M0 1L-3-1M0 4L3 2" stroke="#1d5722" stroke-width=".7" fill="none"/>'},
+    ham:function(R){var r=9+R()*3;return '<path d="'+blob(R,0,0,r,.2,10)+'" fill="#ec9a9a" stroke="#d57a80" stroke-width=".8"/><path d="'+blob(R,1,-1,r*.45,.3,7)+'" fill="#f6bcbc" opacity=".8"/>'},
+    mush:function(){return '<path d="M-8 0C-8-9 8-9 8 0C8 2.5 3.5 2.5 2.5 2.5V7C2.5 9.5-2.5 9.5-2.5 7V2.5C-3.5 2.5-8 2.5-8 0Z" fill="#f0e4cf" stroke="#b39c78" stroke-width=".8"/><path d="M-5-1.5C-3-5 3-5 5-1.5" stroke="#c9b592" stroke-width=".8" fill="none"/>'},
+    olive:function(){return '<circle r="3.6" fill="#2a2230"/><circle r="1.3" fill="#e9cf8a"/><circle cx="-1.2" cy="-1.4" r=".7" fill="#ffffff" opacity=".5"/>'},
+    chevre:function(){return '<circle r="9" fill="#fffaf0" stroke="#e6d7b6" stroke-width="1.2"/><circle r="5.5" fill="#fffefb"/>'},
+    bleu:function(R){return '<path d="'+blob(R,0,0,3+R()*2,.3,7)+'" fill="#6f8fa3" opacity=".8"/>'}
+  };
+  var MIX={margherita:['mozza','basil','mozza','basil','mozza','basil'],reine:['ham','mush','olive','ham','mush','olive','mush'],fromages:['chevre','mozza','bleu','bleu','mozza','bleu','basil']};
+  var NAME={margherita:'Margherita',reine:'Reine',fromages:'4 fromages'};
+  function pizzaSVG(type,seed){
+    var R=rng(seed),id='cr'+type+seed,white=type==='fromages',i,a,d,s;
+    s='<svg viewBox="-104 -104 208 208" role="img" aria-label="Pizza '+NAME[type]+'"><defs><radialGradient id="'+id+'"><stop offset=".7" stop-color="#f1d08f"/><stop offset=".9" stop-color="#e0a95a"/><stop offset="1" stop-color="#b97a34"/></radialGradient></defs>';
+    s+='<path d="'+blob(R,0,0,99,.025,30)+'" fill="url(#'+id+')"/>';
+    for(i=0;i<30;i++){a=R()*Math.PI*2;d=85+R()*11;
+      s+='<ellipse cx="'+f(Math.cos(a)*d)+'" cy="'+f(Math.sin(a)*d)+'" rx="'+f(2+R()*3.5)+'" ry="'+f(1.3+R()*2)+'" transform="rotate('+f(R()*180)+' '+f(Math.cos(a)*d)+' '+f(Math.sin(a)*d)+')" fill="'+(i%4?'#5a3214':'#fff3d6')+'" opacity="'+f(.25+R()*.4)+'"/>'}
+    s+='<path d="'+blob(R,0,0,82,.03,26)+'" fill="'+(white?'#dcc384':'#9c2413')+'"/>';
+    s+='<path d="'+blob(R,0,0,79,.035,26)+'" fill="'+(white?'#f3e2b3':'#c7301c')+'"/>';
+    if(!white)for(i=0;i<10;i++){a=R()*Math.PI*2;d=R()*62;s+='<path d="'+blob(R,Math.cos(a)*d,Math.sin(a)*d,6+R()*8,.25,9)+'" fill="#dd4a2c" opacity=".55"/>'}
+    if(type!=='margherita'){
+      s+='<path d="'+blob(R,0,0,73,.08,28)+'" fill="#f7e7ae"/>';
+      for(i=0;i<16;i++){a=R()*Math.PI*2;d=R()*62;s+='<path d="'+blob(R,Math.cos(a)*d,Math.sin(a)*d,5+R()*7,.3,9)+'" fill="'+(i%2?'#e0a84a':'#fff6d6')+'" opacity="'+(i%2?'.45':'.65')+'"/>'}
+    }
+    var mix=MIX[type],pts=place(R,type==='margherita'?13:19,62,type==='margherita'?22:19);
+    pts.forEach(function(p,k){s+='<g transform="translate('+f(p[0])+' '+f(p[1])+') rotate('+f(p[2])+')">'+TOP[mix[k%mix.length]](R)+'</g>'});
+    return s+'</svg>';
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('[data-pizza]'),function(el){el.innerHTML=pizzaSVG(el.dataset.pizza,+el.dataset.seed||1)});
+
+  var PRESETS={
+    margherita:{nom:'Margherita 33 cm',ttc:9.5,rows:[['Pâton',250,'g',1.2],['Sauce tomate',90,'g',2.2],['Mozzarella',120,'g',6.5],['Huile d\'olive',5,'g',8],['Boîte à pizza',1,'pc',0.22]]},
+    reine:{nom:'Reine 33 cm',ttc:11,rows:[['Pâton',250,'g',1.2],['Sauce tomate',90,'g',2.2],['Mozzarella',110,'g',6.5],['Jambon',60,'g',9],['Champignons',50,'g',4],['Boîte à pizza',1,'pc',0.22]]},
+    fromages:{nom:'4 fromages 33 cm',ttc:12.5,rows:[['Pâton',250,'g',1.2],['Crème',70,'g',3.5],['Mozzarella',80,'g',6.5],['Emmental',40,'g',7],['Chèvre',30,'g',11],['Bleu',25,'g',10],['Boîte à pizza',1,'pc',0.22]]}
+  };
+  Array.prototype.forEach.call(document.querySelectorAll('.preset'),function(b){
+    b.addEventListener('click',function(){
+      var p=PRESETS[b.dataset.preset];if(!p)return;
+      $('nom').value=p.nom;$('ttc').value=p.ttc;
+      rows=p.rows.map(function(r){return {id:++seq,n:r[0],q:r[1],u:r[2],p:r[3]}});
+      Array.prototype.forEach.call(document.querySelectorAll('.preset'),function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});
+      renderRows();calc();
+    });
+  });
+
+  renderRows();calc();
+})();
+</script>
+
+</body>
+</html>
